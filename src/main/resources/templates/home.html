@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">OpenSenseMap Educational Tool</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5rem 0;
+            text-align: center;
+        }
+
+        .hero-section h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .hero-section p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+        }
+
+        .feature-card {
+            transition: transform 0.2s;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .scenario-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .scenario-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .badge-difficulty {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+        }
+
+        .difficulty-1 { background-color: #2ecc71; color: white; }
+        .difficulty-2 { background-color: #3498db; color: white; }
+        .difficulty-3 { background-color: #f39c12; color: white; }
+    </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <i class="bi bi-cloud-sun"></i> OpenSenseMap Edu
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link active" href="/"><i class="bi bi-house"></i> Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/scenarios"><i class="bi bi-journal-code"></i> Scenarios</a></li>
+                <li class="nav-item"><a class="nav-link" href="/playground"><i class="bi bi-laptop"></i> SQL Playground</a></li>
+                <!-- Show when NOT authenticated -->
+                <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+                </li>
+                <!-- Show when authenticated -->
+                <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle"></i> <span sec:authentication="name">User</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2"></i> My Dashboard</a></li>
+                        <li sec:authorize="hasRole('ADMIN')"><a class="dropdown-item" href="/admin/dashboard"><i class="bi bi-gear"></i> Admin Panel</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form th:action="@{/logout}" method="post">
+                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <h1><i class="bi bi-database"></i> Learn SQL with Real Data</h1>
+        <p class="lead">Master database queries using live environmental sensor data from OpenSenseMap</p>
+        <a href="/scenarios" class="btn btn-light btn-lg mt-3">
+            <i class="bi bi-play-circle"></i> Start Learning
+        </a>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="container my-5">
+    <div class="row text-center">
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4">
+                <div class="feature-icon">
+                    <i class="bi bi-clipboard-data"></i>
+                </div>
+                <h4>Real-World Data</h4>
+                <p>Query actual environmental sensor data from thousands of devices across Europe</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4">
+                <div class="feature-icon">
+                    <i class="bi bi-book"></i>
+                </div>
+                <h4>Story-Driven Learning</h4>
+                <p>Learn through engaging scenarios like "Air Quality Detective" and "City Planner"</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card p-4">
+                <div class="feature-icon">
+                    <i class="bi bi-lightning"></i>
+                </div>
+                <h4>Instant Feedback</h4>
+                <p>Get immediate validation and hints to help you learn SQL effectively</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scenarios Preview -->
+<div class="container my-5">
+    <h2 class="text-center mb-4">Available Scenarios</h2>
+
+    <div class="row" th:if="${scenarios != null and !scenarios.empty}">
+        <div class="col-md-6" th:each="scenario : ${scenarios}">
+            <div class="card scenario-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h4 class="card-title">
+                            <span th:text="${scenario.icon}">🎓</span>
+                            <span th:text="${scenario.title}">Scenario Title</span>
+                        </h4>
+                        <span class="badge badge-difficulty"
+                              th:classappend="'difficulty-' + ${scenario.difficultyLevel}"
+                              th:text="${scenario.difficultyLabel}">
+                                Beginner
+                            </span>
+                    </div>
+
+                    <p class="text-muted mb-2">
+                        <i class="bi bi-person-badge"></i>
+                        <span th:text="${scenario.role}">Role</span>
+                    </p>
+
+                    <p class="card-text" th:text="${scenario.description}">
+                        Scenario description goes here
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                                <span class="badge bg-secondary me-2">
+                                    <i class="bi bi-list-task"></i>
+                                    <span th:text="${scenario.totalTasks}">0</span> Tasks
+                                </span>
+                            <span class="badge bg-info">
+                                    <i class="bi bi-clock"></i>
+                                    <span th:text="${scenario.estimatedTimeMinutes}">0</span> min
+                                </span>
+                        </div>
+                        <a th:href="@{/scenarios/{id}(id=${scenario.id})}"
+                           class="btn btn-primary">
+                            Start <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="alert alert-info text-center" th:if="${scenarios == null or scenarios.empty}">
+        <i class="bi bi-info-circle"></i> No scenarios available yet. Check back soon!
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-dark text-white py-4 mt-5">
+    <div class="container text-center">
+        <p class="mb-0">&copy; 2025 OpenSenseMap Educational Tool</p>
+        <p class="mb-0 small">jvincent: Master Thesis Project - Geoinformatics and Spatial Data Science</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - OpenSenseMap Edu'">Access Denied</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .denied-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+        }
+        .denied-icon {
+            font-size: 5rem;
+            color: #e74c3c;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="denied-card">
+        <i class="bi bi-shield-x denied-icon"></i>
+        <h2 class="mb-3">Access Denied</h2>
+        <p class="text-muted mb-4">
+            Sorry, you don't have permission to access this page.
+            Please contact an administrator if you believe this is an error.
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+            <a th:href="@{/}" class="btn btn-outline-secondary">
+                <i class="bi bi-house"></i> Go Home
+            </a>
+            <a th:href="@{/dashboard}" class="btn btn-primary">
+                <i class="bi bi-speedometer2"></i> My Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

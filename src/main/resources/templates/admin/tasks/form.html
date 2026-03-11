@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - OpenSenseMap Edu'">Task Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+    <style>
+        :root { --dark-bg: #2c3e50; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
+        .navbar { background: linear-gradient(135deg, var(--dark-bg) 0%, #34495e 100%); }
+        .sidebar { background: white; min-height: calc(100vh - 56px); box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+        .sidebar .nav-link { color: #333; padding: 0.75rem 1rem; border-radius: 5px; margin: 0.25rem 0.5rem; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #f0f0f0; color: #3498db; }
+        .sidebar .nav-link i { margin-right: 0.5rem; width: 20px; text-align: center; }
+        .content-card { border: none; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .form-section { border-left: 3px solid #3498db; padding-left: 1rem; margin-bottom: 1.5rem; }
+        .form-section h5 { color: #3498db; }
+        .CodeMirror { height: 150px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/"><i class="bi bi-cloud-sun"></i> OpenSenseMap Edu</a>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> <span sec:authentication="name">Admin</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><form th:action="@{/logout}" method="post"><button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Logout</button></form></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar py-3">
+            <nav class="nav flex-column">
+                <a class="nav-link" href="/admin/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                <a class="nav-link active" href="/admin/scenarios"><i class="bi bi-journal-code"></i> Scenarios</a>
+                <a class="nav-link" href="/admin/users"><i class="bi bi-people"></i> Users</a>
+                <hr>
+                <a class="nav-link" href="/"><i class="bi bi-arrow-left"></i> Back to Site</a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 py-4">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/admin/scenarios">Scenarios</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/scenarios/{id}/tasks(id=${scenario.id})}" th:text="${scenario.title}">Scenario</a></li>
+                    <li class="breadcrumb-item active" th:text="${isEdit} ? 'Edit Task' : 'New Task'">Task</li>
+                </ol>
+            </nav>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i th:class="${isEdit} ? 'bi bi-pencil' : 'bi bi-plus-circle'"></i>
+                    <span th:text="${isEdit} ? 'Edit Task' : 'Create Task'">Task Form</span>
+                </h2>
+                <a th:href="@{/admin/scenarios/{id}/tasks(id=${scenario.id})}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Tasks
+                </a>
+            </div>
+
+            <div class="card content-card">
+                <div class="card-body">
+                    <form th:action="@{/admin/scenarios/{scenarioId}/tasks/save(scenarioId=${scenario.id})}" 
+                          th:object="${task}" method="post">
+                        <input type="hidden" th:field="*{id}">
+
+                        <!-- Basic Information -->
+                        <div class="form-section">
+                            <h5><i class="bi bi-info-circle"></i> Task Information</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-2 mb-3">
+                                    <label for="taskOrder" class="form-label">Order #</label>
+                                    <input type="number" th:field="*{taskOrder}" class="form-control" 
+                                           id="taskOrder" min="1" placeholder="1">
+                                </div>
+                                <div class="col-md-8 mb-3">
+                                    <label for="title" class="form-label">Task Title *</label>
+                                    <input type="text" th:field="*{title}" class="form-control" id="title" 
+                                           placeholder="e.g., Find All Active Sensors" required>
+                                </div>
+                                <div class="col-md-2 mb-3">
+                                    <label for="points" class="form-label">Points</label>
+                                    <input type="number" th:field="*{points}" class="form-control" 
+                                           id="points" min="1" max="100" placeholder="10">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Task Description *</label>
+                                <textarea th:field="*{description}" class="form-control" id="description" rows="3" 
+                                          placeholder="Describe what the student needs to accomplish. Be specific about what data they need to retrieve." required></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="sqlConceptsText" class="form-label">SQL Concepts (comma-separated)</label>
+                                <input type="text" name="sqlConceptsText" class="form-control" id="sqlConceptsText" 
+                                       placeholder="SELECT, WHERE, ORDER BY, JOIN"
+                                       th:value="${task.sqlConcepts != null ? #strings.arrayJoin(task.sqlConcepts, ', ') : ''}">
+                                <small class="text-muted">Enter SQL concepts covered by this task, separated by commas</small>
+                            </div>
+                        </div>
+
+                        <!-- Expected Result -->
+                        <div class="form-section">
+                            <h5><i class="bi bi-target"></i> Expected Result</h5>
+                            
+                            <div class="mb-3">
+                                <label for="expectedResultDescription" class="form-label">Expected Result Description</label>
+                                <textarea th:field="*{expectedResultDescription}" class="form-control" 
+                                          id="expectedResultDescription" rows="2"
+                                          placeholder="Describe what the correct result should look like (e.g., 'A list of 5 sensors showing device name and temperature')"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- SQL Solutions -->
+                        <div class="form-section">
+                            <h5><i class="bi bi-code-square"></i> SQL Solutions</h5>
+                            
+                            <div class="mb-3">
+                                <label for="sampleSolution" class="form-label">Sample Solution</label>
+                                <textarea th:field="*{sampleSolution}" class="form-control" id="sampleSolution"
+                                          placeholder="SELECT device_name, value FROM view_measurements WHERE sensor_type = 'temperature' LIMIT 5;"></textarea>
+                                <small class="text-muted">The example solution that will be shown to teachers/admins</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="validationQuery" class="form-label">Validation Query (optional)</label>
+                                <textarea th:field="*{validationQuery}" class="form-control" id="validationQuery"
+                                          placeholder="Query to validate student's answer (advanced feature)"></textarea>
+                                <small class="text-muted">SQL to check if student's answer is correct (leave blank for manual validation)</small>
+                            </div>
+                        </div>
+
+                        <!-- Help & Hints -->
+                        <div class="form-section">
+                            <h5><i class="bi bi-lightbulb"></i> Help & Hints</h5>
+                            
+                            <div class="mb-3">
+                                <label for="hint" class="form-label">Hint</label>
+                                <textarea th:field="*{hint}" class="form-control" id="hint" rows="2"
+                                          placeholder="Provide a helpful hint students can reveal if they're stuck"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between pt-3 border-top">
+                            <a th:href="@{/admin/scenarios/{id}/tasks(id=${scenario.id})}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle"></i> Save Task
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Available Database Views -->
+            <div class="card content-card mt-4 bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-database text-primary"></i> Available Database Views</h6>
+                    <p class="small text-muted mb-2">Students can query these views:</p>
+                    <ul class="small mb-0">
+                        <li><code>view_devices</code> - All sensor devices (id, name, location, exposure, status, created_at)</li>
+                        <li><code>view_sensors</code> - All sensors with their device info (sensor_id, device_id, sensor_type, unit)</li>
+                        <li><code>view_measurements</code> - All measurements with device and sensor info (value, timestamp, device_name, sensor_type)</li>
+                        <li><code>view_latest_measurements</code> - Most recent measurement per sensor</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Task Examples -->
+            <div class="card content-card mt-3 bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-lightbulb text-warning"></i> Example Tasks</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="small mb-1"><strong>Beginner:</strong></p>
+                            <ul class="small">
+                                <li>"List all devices in the database" (SELECT * FROM view_devices)</li>
+                                <li>"Find devices with status 'active'" (WHERE clause)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="small mb-1"><strong>Intermediate:</strong></p>
+                            <ul class="small">
+                                <li>"Find average temperature by device" (GROUP BY, AVG)</li>
+                                <li>"Show measurements from the last 24 hours" (Date filtering)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/sql/sql.min.js"></script>
+<script>
+    // Initialize CodeMirror for SQL textareas
+    CodeMirror.fromTextArea(document.getElementById('sampleSolution'), {
+        mode: 'text/x-sql',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true
+    });
+    CodeMirror.fromTextArea(document.getElementById('validationQuery'), {
+        mode: 'text/x-sql',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true
+    });
+</script>
+</body>
+</html>

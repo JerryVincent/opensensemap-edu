@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Playground - OpenSenseMap Edu</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        }
+
+        .playground-header {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 2rem 0;
+        }
+
+        .sql-editor-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .CodeMirror {
+            height: 250px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .btn-execute {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        .btn-execute:hover {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+
+        .results-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .feedback-success {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .feedback-error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .results-table {
+            max-height: 400px;
+            overflow: auto;
+        }
+
+        .results-table table {
+            font-size: 0.9rem;
+        }
+
+        .loading-spinner {
+            display: none;
+        }
+
+        .loading-spinner.show {
+            display: inline-block;
+        }
+
+        .schema-card {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .table-name {
+            font-weight: 600;
+            color: #3498db;
+            cursor: pointer;
+        }
+
+        .table-name:hover {
+            text-decoration: underline;
+        }
+
+        .column-list {
+            font-size: 0.85rem;
+            color: #666;
+            padding-left: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .example-query {
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            margin-bottom: 0.5rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .example-query:hover {
+            background-color: #e9ecef;
+        }
+
+        .view-toggle-btn.active {
+            background-color: #e74c3c;
+            border-color: #e74c3c;
+            color: white;
+        }
+
+        /* ================================================================
+           MAP STYLES (senseBox markers)
+           ================================================================ */
+        .map-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            margin-top: 1.5rem;
+            display: none;
+            border: 1px solid #e8ecf1;
+        }
+
+        .map-container.show {
+            display: block;
+            animation: mapSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes mapSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        #resultsMap {
+            height: 450px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            overflow: hidden;
+        }
+
+        .map-stats {
+            background: linear-gradient(135deg, #f8f9fb 0%, #eef1f5 100%);
+            padding: 0.85rem 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .sensebox-marker {
+            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px;
+            background: #4eaf47;
+            border: 2.5px solid #fff; border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(78,175,71,0.45), 0 1px 3px rgba(0,0,0,0.15);
+            color: #fff; font-size: 15px;
+            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+            cursor: pointer; position: relative;
+        }
+        .sensebox-marker:hover {
+            transform: scale(1.25);
+            box-shadow: 0 4px 14px rgba(78,175,71,0.6), 0 2px 6px rgba(0,0,0,0.18);
+            z-index: 1000 !important;
+        }
+        .sensebox-marker::after {
+            content: ''; position: absolute;
+            top: -4px; left: -4px; right: -4px; bottom: -4px;
+            border-radius: 8px; border: 2px solid rgba(78,175,71,0.5);
+            animation: markerPulse 2s ease-out 1; pointer-events: none;
+        }
+        @keyframes markerPulse {
+            0%   { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        .sensebox-marker.outdoor { background: #4eaf47; }
+        .sensebox-marker.outdoor::after { border-color: rgba(78,175,71,0.5); }
+        .sensebox-marker.indoor { background: #3b82f6; box-shadow: 0 2px 8px rgba(59,130,246,0.45), 0 1px 3px rgba(0,0,0,0.15); }
+        .sensebox-marker.indoor::after { border-color: rgba(59,130,246,0.5); }
+        .sensebox-marker.mobile { background: #f59e0b; box-shadow: 0 2px 8px rgba(245,158,11,0.45), 0 1px 3px rgba(0,0,0,0.15); }
+        .sensebox-marker.mobile::after { border-color: rgba(245,158,11,0.5); }
+        .sensebox-marker.unknown { background: #6b7280; box-shadow: 0 2px 8px rgba(107,114,128,0.45), 0 1px 3px rgba(0,0,0,0.15); }
+        .sensebox-marker.unknown::after { border-color: rgba(107,114,128,0.5); }
+        .sensebox-marker.animate-in { animation: markerDropIn 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards; }
+        @keyframes markerDropIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.3); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .leaflet-popup-content-wrapper { border-radius: 10px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important; padding: 0 !important; overflow: hidden; }
+        .leaflet-popup-content { margin: 0 !important; }
+        .sensebox-popup { min-width: 220px; max-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+        .sensebox-popup-header { background: linear-gradient(135deg, #4eaf47 0%, #3a8f34 100%); color: white; padding: 10px 14px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+        .sensebox-popup-body { padding: 10px 14px; }
+        .sensebox-popup-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.8rem; border-bottom: 1px solid #f0f0f0; }
+        .sensebox-popup-row:last-child { border-bottom: none; }
+        .sensebox-popup-key { color: #6b7280; font-weight: 500; }
+        .sensebox-popup-value { color: #1f2937; font-weight: 600; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .map-legend { background: rgba(255,255,255,0.95); backdrop-filter: blur(4px); padding: 10px 14px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 0.78rem; line-height: 1.8; }
+        .map-legend-title { font-weight: 700; margin-bottom: 4px; color: #374151; }
+        .map-legend-item { display: flex; align-items: center; gap: 6px; }
+        .map-legend-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.15); flex-shrink: 0; }
+    </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <i class="bi bi-cloud-sun"></i> OpenSenseMap Edu
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/"><i class="bi bi-house"></i> Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/scenarios"><i class="bi bi-journal-code"></i> Scenarios</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/playground"><i class="bi bi-terminal"></i> SQL Playground</a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+                </li>
+                <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> <span sec:authentication="name">User</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2"></i> My Dashboard</a></li>
+                        <li sec:authorize="hasRole('ADMIN')"><a class="dropdown-item" href="/admin/dashboard"><i class="bi bi-gear"></i> Admin Panel</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form th:action="@{/logout}" method="post">
+                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Header -->
+<div class="playground-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="bi bi-terminal"></i> SQL Playground</h2>
+                <p class="mb-0">Practice SQL queries freely on the OpenSenseMap database</p>
+            </div>
+            <div>
+                <span class="badge bg-light text-dark" style="font-size: 1rem;">
+                    <i class="bi bi-database"></i> Live Database
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="container mt-4">
+    <div class="row">
+        <!-- SQL Editor Column -->
+        <div class="col-lg-8">
+            <!-- SQL Editor -->
+            <div class="sql-editor-container">
+                <h5><i class="bi bi-code-slash"></i> Write Your SQL Query</h5>
+                <p class="text-muted small">Experiment with any SELECT query. Press Ctrl+Enter to execute.</p>
+
+                <textarea id="sqlEditor" placeholder="SELECT * FROM device LIMIT 10;"></textarea>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <button class="btn btn-execute me-2" onclick="executeQuery()">
+                            <i class="bi bi-play-fill"></i> Run Query
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="clearEditor()">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </button>
+                    </div>
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">Executing...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Container -->
+            <div class="results-container" id="resultsContainer">
+                <div id="feedbackMessage"></div>
+
+                <!-- View Toggle Buttons -->
+                <div id="viewToggle" class="mt-3" style="display: none;">
+                    <button class="btn btn-outline-danger btn-sm view-toggle-btn active" id="tableViewBtn" onclick="showTableView()">
+                        <i class="bi bi-table"></i> Table View
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm view-toggle-btn" id="mapViewBtn" onclick="showMapView()">
+                        <i class="bi bi-geo-alt"></i> Map View
+                    </button>
+                    <span id="mapDataInfo" class="text-muted ms-2 small"></span>
+                </div>
+
+                <div id="resultsTable" class="results-table mt-3"></div>
+
+                <div id="executionInfo" class="mt-3 text-muted"></div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="map-container" id="mapContainer">
+                <h5>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="#4eaf47" style="vertical-align: -3px; margin-right: 4px;">
+                        <path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 013 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9z"/>
+                    </svg>
+                    senseBox Geographic Distribution
+                </h5>
+                <div id="resultsMap"></div>
+                <div class="map-stats" id="mapStats"></div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Database Schema Reference -->
+            <div class="card mb-3">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-diagram-3"></i> Database Schema</h6>
+                </div>
+                <div class="card-body schema-card">
+                    <div class="mb-3">
+                        <div class="table-name" onclick="insertTable('device')">
+                            <i class="bi bi-table text-primary"></i> device
+                        </div>
+                        <div class="column-list">
+                            id, name, exposure, latitude, longitude, model, grouptag, created_at, updated_at, last_measurement_at
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="table-name" onclick="insertTable('sensor')">
+                            <i class="bi bi-table text-primary"></i> sensor
+                        </div>
+                        <div class="column-list">
+                            id, device_id, title, unit, sensor_type, sensor_wiki_phenomenon
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="table-name" onclick="insertTable('measurement')">
+                            <i class="bi bi-table text-primary"></i> measurement
+                        </div>
+                        <div class="column-list">
+                            id, sensor_id, value, created_at
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="table-name" onclick="insertTable('view_devices')">
+                            <i class="bi bi-eye text-success"></i> view_devices
+                        </div>
+                        <div class="column-list">
+                            (Simplified device view with sensor count)
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="table-name" onclick="insertTable('view_measurements')">
+                            <i class="bi bi-eye text-success"></i> view_measurements
+                        </div>
+                        <div class="column-list">
+                            (Measurements with device/sensor info)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Queries -->
+            <div class="card mb-3">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Example Queries</h6>
+                </div>
+                <div class="card-body">
+                    <div class="example-query" onclick="loadExample(1)">
+                        SELECT * FROM device LIMIT 10;
+                    </div>
+                    <div class="example-query" onclick="loadExample(2)">
+                        SELECT name, latitude, longitude FROM device WHERE exposure = 'outdoor' LIMIT 50;
+                    </div>
+                    <div class="example-query" onclick="loadExample(3)">
+                        SELECT d.name, COUNT(s.id) as sensor_count FROM device d JOIN sensor s ON d.id = s.device_id GROUP BY d.id, d.name ORDER BY sensor_count DESC LIMIT 10;
+                    </div>
+                    <div class="example-query" onclick="loadExample(4)">
+                        SELECT title, unit, sensor_wiki_phenomenon FROM sensor WHERE sensor_wiki_phenomenon LIKE '%PM%' LIMIT 20;
+                    </div>
+                    <div class="example-query" onclick="loadExample(5)">
+                        SELECT * FROM view_devices LIMIT 20;
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips Card -->
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-info-circle"></i> Tips</h6>
+                    <ul class="small mb-0">
+                        <li>Use <code>LIMIT</code> to control result size</li>
+                        <li>Click table names to insert them</li>
+                        <li>Click example queries to load them</li>
+                        <li>Results with coordinates show map option</li>
+                        <li>Press <strong>Ctrl+Enter</strong> to run</li>
+                        <li>Only SELECT queries are allowed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/sql/sql.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script>
+    // Map variables
+    let map = null;
+    let markerCluster = null;
+    let hasCoordinates = false;
+
+    // senseBox cube SVG
+    const SENSEBOX_SVG = `<svg viewBox="0 0 24 24" width="16" height="16" fill="white" stroke="white" stroke-width="0.5">
+        <path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 013 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15zM5 15.91l6 3.37v-6.73L5 9.18v6.73zm14 0v-6.73l-6 3.37v6.73l6-3.37z"/>
+    </svg>`;
+
+    // Initialize CodeMirror
+    const editor = CodeMirror.fromTextArea(document.getElementById('sqlEditor'), {
+        mode: 'text/x-sql',
+        theme: 'material',
+        lineNumbers: true,
+        autofocus: true,
+        lineWrapping: true
+    });
+
+    // Set initial content
+    editor.setValue('SELECT * FROM device LIMIT 10;');
+
+    function clearEditor() {
+        editor.setValue('');
+        editor.focus();
+    }
+
+    function insertTable(tableName) {
+        const cursor = editor.getCursor();
+        editor.replaceRange(tableName, cursor);
+        editor.focus();
+    }
+
+    function loadExample(num) {
+        const examples = {
+            1: 'SELECT * FROM device LIMIT 10;',
+            2: "SELECT name, latitude, longitude FROM device WHERE exposure = 'outdoor' LIMIT 50;",
+            3: 'SELECT d.name, COUNT(s.id) as sensor_count\nFROM device d\nJOIN sensor s ON d.id = s.device_id\nGROUP BY d.id, d.name\nORDER BY sensor_count DESC\nLIMIT 10;',
+            4: "SELECT title, unit, sensor_wiki_phenomenon\nFROM sensor\nWHERE sensor_wiki_phenomenon LIKE '%PM%'\nLIMIT 20;",
+            5: 'SELECT * FROM view_devices LIMIT 20;'
+        };
+        editor.setValue(examples[num] || '');
+        editor.focus();
+    }
+
+    // ================================================================
+    // MAP FUNCTIONS (senseBox markers)
+    // ================================================================
+
+    function detectCoordinateColumns(columns) {
+        const latPatterns = ['latitude', 'lat', 'y'];
+        const lonPatterns = ['longitude', 'lon', 'lng', 'long', 'x'];
+        let latCol = -1, lonCol = -1;
+        columns.forEach((col, idx) => {
+            const lower = col.toLowerCase().trim();
+            if (latCol === -1 && latPatterns.some(p => lower === p || lower.endsWith('_' + p))) latCol = idx;
+            if (lonCol === -1 && lonPatterns.some(p => lower === p || lower.endsWith('_' + p))) lonCol = idx;
+        });
+        return { latCol, lonCol, hasCoords: latCol !== -1 && lonCol !== -1 };
+    }
+
+    function findNameColumn(columns) {
+        const exact = ['name', 'title', 'device_name', 'station_name', 'sensor_name'];
+        for (let p of exact) {
+            const idx = columns.findIndex(c => c.toLowerCase().trim() === p);
+            if (idx !== -1) return idx;
+        }
+        const partial = ['name', 'title', 'label', 'device', 'station', 'sensor', 'id'];
+        for (let p of partial) {
+            const idx = columns.findIndex(c => c.toLowerCase().includes(p));
+            if (idx !== -1) return idx;
+        }
+        return 0;
+    }
+
+    function findExposureColumn(columns) {
+        return columns.findIndex(c => c.toLowerCase().trim() === 'exposure');
+    }
+
+    function createSenseBoxIcon(exposure, animDelay) {
+        const expClass = (exposure || 'unknown').toLowerCase();
+        return L.divIcon({
+            className: '',
+            html: `<div class="sensebox-marker ${expClass} animate-in" style="animation-delay: ${animDelay}ms">${SENSEBOX_SVG}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -18]
+        });
+    }
+
+    function buildPopupContent(row, columns, nameCol) {
+        const name = row[nameCol] || 'Unknown Device';
+        let bodyRows = '';
+        columns.forEach((col, i) => {
+            if (row[i] !== null && row[i] !== '' && i !== nameCol) {
+                let val = String(row[i]);
+                if (val.length > 40) val = val.substring(0, 37) + '...';
+                bodyRows += `
+                    <div class="sensebox-popup-row">
+                        <span class="sensebox-popup-key">${col}</span>
+                        <span class="sensebox-popup-value" title="${row[i]}">${val}</span>
+                    </div>`;
+            }
+        });
+        return `
+            <div class="sensebox-popup">
+                <div class="sensebox-popup-header">${SENSEBOX_SVG} ${name}</div>
+                <div class="sensebox-popup-body">${bodyRows}</div>
+            </div>`;
+    }
+
+    function addMapLegend(exposureCounts) {
+        if (map._legend) map.removeControl(map._legend);
+        const legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function () {
+            const div = L.DomUtil.create('div', 'map-legend');
+            let html = '<div class="map-legend-title">senseBox Devices</div>';
+            const types = [
+                { key: 'outdoor', color: '#4eaf47', label: 'Outdoor' },
+                { key: 'indoor',  color: '#3b82f6', label: 'Indoor' },
+                { key: 'mobile',  color: '#f59e0b', label: 'Mobile' },
+                { key: 'unknown', color: '#6b7280', label: 'Unknown' }
+            ];
+            types.forEach(t => {
+                const count = exposureCounts[t.key] || 0;
+                if (count > 0) {
+                    html += `<div class="map-legend-item">
+                        <span class="map-legend-swatch" style="background:${t.color}"></span>
+                        ${t.label} (${count})
+                    </div>`;
+                }
+            });
+            div.innerHTML = html;
+            return div;
+        };
+        legend.addTo(map);
+        map._legend = legend;
+    }
+
+    function initMap() {
+        if (!map) {
+            map = L.map('resultsMap', { zoomSnap: 0.5, zoomDelta: 0.5 }).setView([51.96, 7.63], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 18
+            }).addTo(map);
+            markerCluster = L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 50,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                iconCreateFunction: function (cluster) {
+                    const count = cluster.getChildCount();
+                    let size = count < 10 ? 36 : count < 100 ? 44 : 52;
+                    return L.divIcon({
+                        html: `<div style="
+                            width:${size}px; height:${size}px;
+                            background: linear-gradient(135deg, #4eaf47 0%, #3a8f34 100%);
+                            border: 3px solid #fff; border-radius: 8px;
+                            color: #fff; display: flex; align-items: center; justify-content: center;
+                            font-weight: 700; font-size: ${count > 999 ? 11 : 13}px;
+                            box-shadow: 0 3px 10px rgba(78,175,71,0.4), 0 1px 4px rgba(0,0,0,0.15);
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+                        ">${count}</div>`,
+                        className: '',
+                        iconSize: [size, size],
+                        iconAnchor: [size / 2, size / 2]
+                    });
+                }
+            });
+            map.addLayer(markerCluster);
+        }
+        markerCluster.clearLayers();
+        if (map._legend) { map.removeControl(map._legend); map._legend = null; }
+    }
+
+    function populateMap(data, columns) {
+        const coordInfo = detectCoordinateColumns(columns);
+        if (!coordInfo.hasCoords) return 0;
+
+        const nameCol = findNameColumn(columns);
+        const exposureCol = findExposureColumn(columns);
+        const bounds = [];
+        let validCount = 0;
+        const exposureCounts = {};
+        const maxAnimated = 200;
+
+        data.forEach((row, idx) => {
+            const lat = parseFloat(row[coordInfo.latCol]);
+            const lon = parseFloat(row[coordInfo.lonCol]);
+
+            if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+                const exposure = exposureCol !== -1 ? (row[exposureCol] || 'unknown').toLowerCase() : 'unknown';
+                exposureCounts[exposure] = (exposureCounts[exposure] || 0) + 1;
+
+                const animDelay = idx < maxAnimated ? idx * 15 : 0;
+                const icon = createSenseBoxIcon(exposure, animDelay);
+                const popup = buildPopupContent(row, columns, nameCol);
+
+                const marker = L.marker([lat, lon], { icon: icon })
+                    .bindPopup(popup, { maxWidth: 280, closeButton: true });
+
+                markerCluster.addLayer(marker);
+                bounds.push([lat, lon]);
+                validCount++;
+            }
+        });
+
+        // Auto-center (safe for hidden container)
+        if (bounds.length > 0) {
+            try {
+                if (bounds.length === 1) map.setView(bounds[0], 14);
+                else map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+            } catch (e) { /* map may be hidden; showMapView will re-fit */ }
+        }
+
+        if (exposureCol !== -1) addMapLegend(exposureCounts);
+
+        const cubeIcon = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#4eaf47" style="vertical-align:-2px;margin-right:3px;">
+            <path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18-.21 0-.41-.06-.57-.18l-7.9-4.44A.991.991 0 013 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18.21 0 .41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9z"/>
+        </svg>`;
+
+        document.getElementById('mapStats').innerHTML = `
+            <div class="row align-items-center">
+                <div class="col-auto">${cubeIcon} <strong>${validCount}</strong> device${validCount !== 1 ? 's' : ''} mapped</div>
+                <div class="col-auto"><i class="bi bi-table text-primary"></i> <strong>${data.length}</strong> total rows</div>
+                <div class="col-auto text-muted"><i class="bi bi-hand-index"></i> Click a marker for details</div>
+            </div>
+        `;
+        return validCount;
+    }
+
+    // ================================================================
+    // VIEW TOGGLE (unchanged logic)
+    // ================================================================
+
+    function showTableView() {
+        document.getElementById('resultsTable').style.display = 'block';
+        document.getElementById('mapContainer').classList.remove('show');
+        document.getElementById('tableViewBtn').classList.add('active');
+        document.getElementById('mapViewBtn').classList.remove('active');
+    }
+
+    function showMapView() {
+        document.getElementById('resultsTable').style.display = 'none';
+        document.getElementById('mapContainer').classList.add('show');
+        document.getElementById('tableViewBtn').classList.remove('active');
+        document.getElementById('mapViewBtn').classList.add('active');
+        if (map) {
+            setTimeout(() => {
+                map.invalidateSize();
+                if (markerCluster && markerCluster.getLayers().length > 0) {
+                    map.flyToBounds(markerCluster.getBounds(), {
+                        padding: [40, 40], maxZoom: 16, duration: 0.8
+                    });
+                }
+            }, 150);
+        }
+    }
+
+    // ================================================================
+    // QUERY EXECUTION (unchanged)
+    // ================================================================
+
+    async function executeQuery() {
+        const query = editor.getValue().trim();
+
+        if (!query) {
+            alert('Please write a SQL query first!');
+            return;
+        }
+
+        document.getElementById('loadingSpinner').classList.add('show');
+        document.getElementById('resultsContainer').classList.remove('show');
+        document.getElementById('mapContainer').classList.remove('show');
+
+        try {
+            const response = await fetch('/api/query/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: query,
+                    userId: null,
+                    taskId: null  // No task - just playground
+                })
+            });
+
+            const result = await response.json();
+            document.getElementById('loadingSpinner').classList.remove('show');
+            displayResults(result);
+
+        } catch (error) {
+            document.getElementById('loadingSpinner').classList.remove('show');
+            alert('Error executing query: ' + error.message);
+        }
+    }
+
+    // ================================================================
+    // DISPLAY RESULTS (unchanged logic)
+    // ================================================================
+
+    function displayResults(result) {
+        const container = document.getElementById('resultsContainer');
+        const feedbackDiv = document.getElementById('feedbackMessage');
+        const tableDiv = document.getElementById('resultsTable');
+        const infoDiv = document.getElementById('executionInfo');
+        const viewToggle = document.getElementById('viewToggle');
+        const mapDataInfo = document.getElementById('mapDataInfo');
+
+        container.classList.add('show');
+        hasCoordinates = false;
+
+        // Feedback
+        let feedbackClass = result.success ? 'feedback-success' : 'feedback-error';
+        let icon = result.success ? '✓' : '✗';
+        let message = result.success ? 'Query executed successfully!' : (result.feedback || 'Query failed');
+
+        feedbackDiv.innerHTML = `<div class="${feedbackClass}"><strong>${icon} ${message}</strong></div>`;
+
+        if (result.success && result.columns && result.columns.length > 0) {
+            let tableHtml = '<table class="table table-striped table-hover"><thead><tr>';
+            result.columns.forEach(col => tableHtml += `<th>${col}</th>`);
+            tableHtml += '</tr></thead><tbody>';
+
+            if (result.data && result.data.length > 0) {
+                result.data.forEach(row => {
+                    tableHtml += '<tr>';
+                    row.forEach(cell => {
+                        tableHtml += `<td>${cell !== null ? cell : '<i class="text-muted">NULL</i>'}</td>`;
+                    });
+                    tableHtml += '</tr>';
+                });
+            } else {
+                tableHtml += `<tr><td colspan="${result.columns.length}" class="text-center text-muted">No results</td></tr>`;
+            }
+
+            tableHtml += '</tbody></table>';
+            tableDiv.innerHTML = tableHtml;
+
+            // Check for coordinates
+            const coordInfo = detectCoordinateColumns(result.columns);
+            if (coordInfo.hasCoords && result.data && result.data.length > 0) {
+                hasCoordinates = true;
+                viewToggle.style.display = 'block';
+                mapDataInfo.innerHTML = '<i class="bi bi-geo-alt text-success"></i> Geographic data detected!';
+                initMap();
+                populateMap(result.data, result.columns);
+            } else {
+                viewToggle.style.display = 'none';
+                mapDataInfo.innerHTML = '';
+            }
+
+            infoDiv.innerHTML = `<small><i class="bi bi-info-circle"></i> ${result.rowsReturned} row(s) in ${result.executionTimeMs}ms${hasCoordinates ? ' | <i class="bi bi-geo-alt text-success"></i> Map available' : ''}</small>`;
+        } else {
+            tableDiv.innerHTML = '';
+            infoDiv.innerHTML = '';
+            viewToggle.style.display = 'none';
+        }
+
+        showTableView();
+        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Keyboard shortcut
+    editor.setOption('extraKeys', {
+        'Ctrl-Enter': function() { executeQuery(); }
+    });
+</script>
+</body>
+</html>

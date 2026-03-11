@@ -1,0 +1,46 @@
+# === Build output ===
+target/
+
+# === IDE files ===
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# === Java / Maven ===
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+
+# === Spring Boot ===
+application-local.properties
+application-dev.properties
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Sync scripts (contain DB credentials) ===
+/sync/
+*.ps1
+run_sync.bat
+
+# === Database dumps / CSV exports ===
+*.csv
+*.sql.bak
+*.dump
