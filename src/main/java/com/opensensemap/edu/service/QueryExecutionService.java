@@ -13,9 +13,9 @@ import lombok.Data;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
  * - Provides intelligent feedback
  * - Logs submissions for learning analytics
  * - Updates user progress when tasks are completed correctly
+ * - Blocks access to sensitive tables and strips sensitive columns from results
  */
 @Service
 public class QueryExecutionService {
@@ -36,6 +37,43 @@ public class QueryExecutionService {
     private final TaskRepository taskRepository;
     private final EduUserRepository userRepository;
     private final UserProgressRepository progressRepository;
+
+    // ================================================================
+    // SECURITY: Tables and columns that must not be exposed to students
+    // ================================================================
+
+    /** Tables that students are NOT allowed to query */
+    private static final Set<String> BLOCKED_TABLES = Set.of(
+            "user",             // openSenseMap user accounts (quoted as "user" in SQL)
+            "profile",          // openSenseMap user profiles
+            "edu_user",         // application user accounts (passwords, emails)
+            "user_progress",    // internal progress tracking
+            "query_submission"  // internal submission logs
+    );
+
+    /** Columns that must be stripped from query results */
+    private static final Set<String> SENSITIVE_COLUMNS = Set.of(
+            "user_id",
+            "userid",
+            "apikey",
+            "api_key",
+            "email",
+            "password",
+            "password_hash",
+            "passwordhash",
+            "token",
+            "secret",
+            "owner_name"
+    );
+
+    /**
+     * Pattern to extract table names from SQL queries.
+     * Matches: FROM tablename, JOIN tablename, FROM "tablename"
+     */
+    private static final Pattern TABLE_PATTERN = Pattern.compile(
+            "(?:FROM|JOIN)\\s+\"?([a-zA-Z_][a-zA-Z0-9_]*)\"?",
+            Pattern.CASE_INSENSITIVE
+    );
 
     public QueryExecutionService(
             WebDatabaseConnector connector,
@@ -60,6 +98,25 @@ public class QueryExecutionService {
      */
     @Transactional
     public QueryExecutionResult executeQuery(Long userId, Long taskId, String queryText) {
+
+        // ============================================================
+        // SECURITY CHECK: Block queries on sensitive tables
+        // ============================================================
+        String blockedTable = findBlockedTable(queryText);
+        if (blockedTable != null) {
+            QueryExecutionResult blocked = new QueryExecutionResult();
+            blocked.setSuccess(false);
+            blocked.setQueryText(queryText);
+            blocked.setRowsReturned(0);
+            blocked.setExecutionTimeMs(0L);
+            blocked.setIsCorrect(false);
+            blocked.setFeedback("✗ Access denied: The table '" + blockedTable +
+                    "' contains protected data and cannot be queried. " +
+                    "Use tables like device, sensor, measurement, or the provided views (view_devices, view_sensors).");
+            blocked.setErrorMessage("Access to table '" + blockedTable + "' is not permitted.");
+            return blocked;
+        }
+
         // Execute student's query
         connector.executeStatement(queryText);
 
@@ -99,7 +156,7 @@ public class QueryExecutionService {
         // Only save submission and update progress if user is logged in
         if (userId != null) {
             EduUser user = userRepository.findById(userId).orElse(null);
-            
+
             if (user != null) {
                 // Save submission to database
                 QuerySubmission submission = saveSubmission(
@@ -118,13 +175,116 @@ public class QueryExecutionService {
 
         // Add result data if successful (use student's original result)
         if (wasSuccessful && studentResult != null) {
-            result.setColumns(studentResult.getColumnNames());
-            result.setData(studentResult.getData());
-            result.setResultMap(studentResult.toMapList());
+            // ============================================================
+            // SECURITY: Strip sensitive columns before sending to client
+            // ============================================================
+            SanitizedResult sanitized = stripSensitiveColumns(
+                    studentResult.getColumnNames(), studentResult.getData());
+
+            result.setColumns(sanitized.columns);
+            result.setData(sanitized.data);
+            result.setRowsReturned(sanitized.data.length > 0 ? sanitized.data.length : rowsReturned);
+            // Rebuild resultMap without sensitive columns
+            result.setResultMap(buildSanitizedMapList(sanitized.columns, sanitized.data));
         }
 
         return result;
     }
+
+    // ================================================================
+    // SECURITY METHODS
+    // ================================================================
+
+    /**
+     * Check if the query references any blocked table.
+     * Returns the blocked table name if found, null if safe.
+     */
+    private String findBlockedTable(String query) {
+        if (query == null) return null;
+
+        // Remove SQL comments (-- and /* */)
+        String cleaned = query.replaceAll("--[^\n]*", " ")
+                .replaceAll("/\\*.*?\\*/", " ");
+
+        Matcher matcher = TABLE_PATTERN.matcher(cleaned);
+        while (matcher.find()) {
+            String tableName = matcher.group(1).toLowerCase().trim();
+            if (BLOCKED_TABLES.contains(tableName)) {
+                return tableName;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Remove sensitive columns from query results.
+     * Returns new arrays with sensitive columns filtered out.
+     */
+    private SanitizedResult stripSensitiveColumns(String[] columns, String[][] data) {
+        if (columns == null || columns.length == 0) {
+            return new SanitizedResult(columns, data);
+        }
+
+        // Find indices of safe (non-sensitive) columns
+        List<Integer> safeIndices = new ArrayList<>();
+        List<String> safeColumns = new ArrayList<>();
+
+        for (int i = 0; i < columns.length; i++) {
+            String colLower = columns[i].toLowerCase().trim();
+            if (!SENSITIVE_COLUMNS.contains(colLower)) {
+                safeIndices.add(i);
+                safeColumns.add(columns[i]);
+            }
+        }
+
+        // If nothing was stripped, return original
+        if (safeIndices.size() == columns.length) {
+            return new SanitizedResult(columns, data);
+        }
+
+        // Build filtered column array
+        String[] filteredColumns = safeColumns.toArray(new String[0]);
+
+        // Build filtered data array
+        String[][] filteredData = new String[data.length][safeIndices.size()];
+        for (int row = 0; row < data.length; row++) {
+            for (int col = 0; col < safeIndices.size(); col++) {
+                filteredData[row][col] = data[row][safeIndices.get(col)];
+            }
+        }
+
+        return new SanitizedResult(filteredColumns, filteredData);
+    }
+
+    /**
+     * Build a List<Map> from sanitized columns and data (replaces the original resultMap)
+     */
+    private List<Map<String, Object>> buildSanitizedMapList(String[] columns, String[][] data) {
+        List<Map<String, Object>> mapList = new ArrayList<>();
+        for (String[] row : data) {
+            Map<String, Object> rowMap = new LinkedHashMap<>();
+            for (int i = 0; i < columns.length && i < row.length; i++) {
+                rowMap.put(columns[i], row[i]);
+            }
+            mapList.add(rowMap);
+        }
+        return mapList;
+    }
+
+    /** Simple holder for sanitized result data */
+    private static class SanitizedResult {
+        final String[] columns;
+        final String[][] data;
+
+        SanitizedResult(String[] columns, String[][] data) {
+            this.columns = columns;
+            this.data = data;
+        }
+    }
+
+    // ================================================================
+    // VALIDATION METHODS (unchanged)
+    // ================================================================
 
     /**
      * Validate query result against expected output for a task
@@ -145,7 +305,7 @@ public class QueryExecutionService {
 
         // Determine which query to use for validation
         String validationSql = null;
-        
+
         if (task.getValidationQuery() != null && !task.getValidationQuery().trim().isEmpty()) {
             // Use explicit validation query
             validationSql = task.getValidationQuery().trim();
@@ -158,9 +318,9 @@ public class QueryExecutionService {
 
         // If no validation query available, we cannot validate
         if (validationSql == null) {
-            return new ValidationResult(false, 
-                "⚠ Query executed but cannot validate - no sample solution defined for this task. " +
-                "Please ask your instructor to check your result.");
+            return new ValidationResult(false,
+                    "⚠ Query executed but cannot validate - no sample solution defined for this task. " +
+                            "Please ask your instructor to check your result.");
         }
 
         // Execute validation query to get expected results
@@ -169,8 +329,8 @@ public class QueryExecutionService {
             WebDatabaseConnector.QueryResult expectedResult = connector.getCurrentQueryResult();
 
             if (expectedResult == null) {
-                return new ValidationResult(false, 
-                    "⚠ Could not validate your answer. The validation query failed to execute.");
+                return new ValidationResult(false,
+                        "⚠ Could not validate your answer. The validation query failed to execute.");
             }
 
             // Compare results
@@ -178,8 +338,8 @@ public class QueryExecutionService {
 
             if (comparison.isMatch()) {
                 return new ValidationResult(true, String.format(
-                    "✓ Excellent! Your query returned the correct result. You earned %d points!",
-                    task.getPoints()
+                        "✓ Excellent! Your query returned the correct result. You earned %d points!",
+                        task.getPoints()
                 ));
             } else {
                 // Provide helpful feedback based on what's different
@@ -250,15 +410,15 @@ public class QueryExecutionService {
      */
     private String normalizeResultData(WebDatabaseConnector.QueryResult result) {
         String[][] data = result.getData();
-        
+
         // Convert each row to a string and sort
         List<String> rows = Arrays.stream(data)
-            .map(row -> Arrays.stream(row)
-                .map(cell -> cell == null ? "NULL" : cell.trim().toLowerCase())
-                .collect(Collectors.joining("|")))
-            .sorted()
-            .collect(Collectors.toList());
-        
+                .map(row -> Arrays.stream(row)
+                        .map(cell -> cell == null ? "NULL" : cell.trim().toLowerCase())
+                        .collect(Collectors.joining("|")))
+                .sorted()
+                .collect(Collectors.toList());
+
         return String.join("\n", rows);
     }
 
@@ -302,7 +462,7 @@ public class QueryExecutionService {
     private void updateUserProgress(EduUser user, Task task) {
         // Get or create progress for this scenario
         Long scenarioId = task.getScenario().getId();
-        
+
         UserProgress progress = progressRepository.findByUserIdAndScenarioId(user.getId(), scenarioId)
                 .orElseGet(() -> {
                     UserProgress newProgress = new UserProgress();
@@ -318,7 +478,7 @@ public class QueryExecutionService {
         // Check if this task was already completed by checking previous correct submissions
         List<QuerySubmission> previousCorrect = submissionRepository
                 .findByUserIdAndTaskIdOrderByAttemptNumberDesc(user.getId(), task.getId());
-        
+
         // Only count the task as newly completed if this is the first correct submission
         boolean alreadyCompleted = previousCorrect.stream()
                 .skip(1) // Skip the current submission we just saved
