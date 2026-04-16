@@ -1,0 +1,10 @@
+target/
+.idea/
+*.iml
+.git/
+.gitignore
+.vscode/
+*.log
+*.csv
+*.sql.bak
+README.md
