@@ -39,6 +39,11 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
+        .task-card.task-done {
+            border-left: 4px solid #22c55e;
+            background-color: #f0fdf4;
+        }
+
         .task-number {
             background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
             color: white;
@@ -50,10 +55,11 @@
             justify-content: center;
             font-weight: bold;
             font-size: 1.2rem;
+            flex-shrink: 0;
         }
 
-        .task-completed {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        .task-number.task-completed {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
         }
 
         .concepts-badge {
@@ -79,6 +85,27 @@
             background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
             transform: scale(1.05);
             color: white;
+        }
+
+        .playground-tip {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 1px solid #93c5fd;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+        }
+
+        .playground-tip a {
+            font-weight: 600;
+        }
+
+        /* Code tags in task descriptions */
+        .task-card code {
+            background-color: #e8f4f8;
+            color: #2980b9;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -128,14 +155,14 @@
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h1>
-                    <span th:text="${scenario.icon}" style="font-size: 3rem;">🎓</span>
+                    <span th:text="${scenario.icon}" style="font-size: 3rem;">&#127891;</span>
                     <span th:text="${scenario.title}">Scenario Title</span>
                 </h1>
                 <p class="lead mb-0" th:text="${scenario.description}">Description</p>
             </div>
             <div class="col-md-4 text-md-end">
                 <div class="badge bg-light text-dark" style="font-size: 1.2rem; padding: 1rem;">
-                    <strong>0 / <span th:text="${scenario.totalTasks}">0</span> Tasks</strong>
+                    <strong><span th:text="${#sets.size(completedTaskIds)}">0</span> / <span th:text="${scenario.totalTasks}">0</span> Tasks</strong>
                 </div>
             </div>
         </div>
@@ -162,33 +189,41 @@
                             Objective
                         </li>
                     </ul>
-
-                    <div class="mt-4">
-                        <small class="text-muted">
-                            <i class="bi bi-clock"></i>
-                            Estimated time: <span th:text="${scenario.estimatedTimeMinutes}">0</span> minutes
-                        </small>
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Tasks -->
         <div class="col-md-8">
+            <!-- Playground Tip -->
+            <div class="playground-tip mb-4">
+                <i class="bi bi-lightbulb-fill text-primary"></i>
+                <strong>Tip:</strong> Not sure about the database structure? Visit the
+                <a href="/playground"><i class="bi bi-terminal"></i> SQL Playground</a>
+                to explore the schema diagram and try example queries before starting.
+            </div>
+
             <h3 class="mb-4">Tasks</h3>
 
-            <div class="task-card card" th:each="task, iterStat : ${tasks}">
+            <div th:each="task, iterStat : ${tasks}"
+                 th:class="'task-card card' + (${completedTaskIds.contains(task.id)} ? ' task-done' : '')">
                 <div class="card-body">
                     <div class="d-flex align-items-start">
                         <!-- Task Number -->
-                        <div class="task-number me-3">
-                            <span th:text="${task.taskOrder}">1</span>
+                        <div th:class="'task-number me-3' + (${completedTaskIds.contains(task.id)} ? ' task-completed' : '')">
+                            <span th:if="${!completedTaskIds.contains(task.id)}" th:text="${task.taskOrder}">1</span>
+                            <i th:if="${completedTaskIds.contains(task.id)}" class="bi bi-check-lg"></i>
                         </div>
 
                         <!-- Task Content -->
                         <div class="flex-grow-1">
-                            <h4 th:text="${task.title}">Task Title</h4>
-                            <p class="text-muted" th:text="${task.description}">Task description...</p>
+                            <h4>
+                                <span th:text="${task.title}">Task Title</span>
+                                <span th:if="${completedTaskIds.contains(task.id)}" class="badge bg-success ms-2" style="font-size: 0.6em; vertical-align: middle;">
+                                    Completed
+                                </span>
+                            </h4>
+                            <p class="text-muted" th:utext="${task.description}">Task description...</p>
 
                             <!-- SQL Concepts -->
                             <div class="mb-3">
@@ -209,7 +244,8 @@
 
                                 <a th:href="@{/scenarios/{scenarioId}/task/{taskId}(scenarioId=${scenario.id}, taskId=${task.id})}"
                                    class="btn btn-start-task">
-                                    Start Task <i class="bi bi-arrow-right"></i>
+                                    <span th:if="${!completedTaskIds.contains(task.id)}">Start Task <i class="bi bi-arrow-right"></i></span>
+                                    <span th:if="${completedTaskIds.contains(task.id)}"><i class="bi bi-arrow-repeat"></i> Review</span>
                                 </a>
                             </div>
                         </div>
@@ -218,7 +254,7 @@
             </div>
 
             <!-- Empty State -->
-            <div class="alert alert-warning" th:if="${tasks == null or tasks.empty}">
+            <div class="alert alert-warning" th:if="${tasks == null or #lists.isEmpty(tasks)}">
                 <i class="bi bi-exclamation-triangle"></i>
                 No tasks available for this scenario yet.
             </div>

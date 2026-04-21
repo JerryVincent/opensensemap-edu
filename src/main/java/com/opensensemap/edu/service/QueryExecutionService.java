@@ -181,11 +181,28 @@ public class QueryExecutionService {
             SanitizedResult sanitized = stripSensitiveColumns(
                     studentResult.getColumnNames(), studentResult.getData());
 
+            // ============================================================
+            // SAFETY: Cap displayed rows at 500 to prevent browser freeze
+            // (validation already ran on the full uncapped result above)
+            // ============================================================
+            final int MAX_DISPLAY_ROWS = 500;
+            String[][] displayData = sanitized.data;
+            boolean wasCapped = false;
+            if (displayData.length > MAX_DISPLAY_ROWS) {
+                displayData = Arrays.copyOf(displayData, MAX_DISPLAY_ROWS);
+                wasCapped = true;
+            }
+
             result.setColumns(sanitized.columns);
-            result.setData(sanitized.data);
-            result.setRowsReturned(sanitized.data.length > 0 ? sanitized.data.length : rowsReturned);
-            // Rebuild resultMap without sensitive columns
-            result.setResultMap(buildSanitizedMapList(sanitized.columns, sanitized.data));
+            result.setData(displayData);
+            result.setRowsReturned(sanitized.data.length); // report actual count, not capped
+            result.setResultMap(buildSanitizedMapList(sanitized.columns, displayData));
+
+            // Append cap notice to feedback if rows were truncated
+            if (wasCapped) {
+                result.setFeedback(result.getFeedback() +
+                        " (Showing first " + MAX_DISPLAY_ROWS + " of " + sanitized.data.length + " rows)");
+            }
         }
 
         return result;

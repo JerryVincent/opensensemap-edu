@@ -304,6 +304,145 @@
 
 <!-- Main Content -->
 <div class="container mt-4">
+    <!-- ER Diagram - Full Width Collapsible -->
+    <div class="card mb-4" style="border: 2px solid #3b82f6; border-radius: 12px; overflow: hidden;">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#erDiagramBody" aria-expanded="true">
+            <h5 class="mb-0"><i class="bi bi-diagram-3 text-primary"></i> Database Schema (ER Diagram)</h5>
+            <span class="text-muted small"><i class="bi bi-chevron-down" id="erChevron"></i> Click to toggle</span>
+        </div>
+        <div class="collapse show" id="erDiagramBody">
+            <div class="card-body p-3" style="background: #fafbfc;">
+                <svg viewBox="0 0 960 530" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+                    <defs>
+                        <filter id="shadow" x="-3%" y="-3%" width="106%" height="106%">
+                            <feDropShadow dx="1" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+                        </filter>
+                    </defs>
+
+                    <!-- ============ DEVICE TABLE ============ -->
+                    <g filter="url(#shadow)">
+                        <rect x="20" y="25" width="280" height="280" rx="10" fill="#fff" stroke="#3b82f6" stroke-width="2.5"/>
+                        <rect x="20" y="25" width="280" height="38" rx="10" fill="#3b82f6"/>
+                        <rect x="20" y="52" width="280" height="11" fill="#3b82f6"/>
+                        <text x="160" y="51" text-anchor="middle" fill="#fff" font-size="16" font-weight="700" font-family="system-ui">device</text>
+
+                        <text x="35" y="84" fill="#1f2937" font-size="13" font-family="monospace"><tspan font-weight="700" fill="#3b82f6">PK</tspan>  id</text>
+                        <line x1="35" y1="92" x2="285" y2="92" stroke="#e5e7eb" stroke-width="1"/>
+                        <text x="35" y="112" fill="#1f2937" font-size="13" font-family="monospace">name</text>
+                        <text x="35" y="132" fill="#1f2937" font-size="13" font-family="monospace">exposure</text>
+                        <text x="140" y="132" fill="#9ca3af" font-size="11" font-family="system-ui">outdoor / indoor / mobile</text>
+                        <text x="35" y="152" fill="#1f2937" font-size="13" font-family="monospace">status</text>
+                        <text x="140" y="152" fill="#9ca3af" font-size="11" font-family="system-ui">active / inactive / old</text>
+                        <text x="35" y="172" fill="#1f2937" font-size="13" font-family="monospace">latitude</text>
+                        <text x="35" y="192" fill="#1f2937" font-size="13" font-family="monospace">longitude</text>
+                        <text x="35" y="212" fill="#1f2937" font-size="13" font-family="monospace">model</text>
+                        <text x="35" y="232" fill="#1f2937" font-size="13" font-family="monospace">grouptag</text>
+                        <text x="35" y="252" fill="#1f2937" font-size="13" font-family="monospace">created_at</text>
+                        <text x="35" y="272" fill="#1f2937" font-size="13" font-family="monospace">updated_at</text>
+                    </g>
+
+                    <!-- ============ SENSOR TABLE ============ -->
+                    <g filter="url(#shadow)">
+                        <rect x="410" y="25" width="260" height="210" rx="10" fill="#fff" stroke="#22c55e" stroke-width="2.5"/>
+                        <rect x="410" y="25" width="260" height="38" rx="10" fill="#22c55e"/>
+                        <rect x="410" y="52" width="260" height="11" fill="#22c55e"/>
+                        <text x="540" y="51" text-anchor="middle" fill="#fff" font-size="16" font-weight="700" font-family="system-ui">sensor</text>
+
+                        <text x="425" y="84" fill="#1f2937" font-size="13" font-family="monospace"><tspan font-weight="700" fill="#22c55e">PK</tspan>  id</text>
+                        <line x1="425" y1="92" x2="655" y2="92" stroke="#e5e7eb" stroke-width="1"/>
+                        <text x="425" y="112" fill="#1f2937" font-size="13" font-family="monospace"><tspan font-weight="700" fill="#e67e22">FK</tspan>  device_id</text>
+                        <text x="425" y="136" fill="#1f2937" font-size="13" font-family="monospace">title</text>
+                        <text x="485" y="136" fill="#9ca3af" font-size="11" font-family="system-ui">e.g. "Temperatur"</text>
+                        <text x="425" y="158" fill="#1f2937" font-size="13" font-family="monospace">unit</text>
+                        <text x="485" y="158" fill="#9ca3af" font-size="11" font-family="system-ui">e.g. "°C", "µg/m³"</text>
+                        <text x="425" y="180" fill="#1f2937" font-size="13" font-family="monospace">sensor_type</text>
+                        <text x="425" y="202" fill="#1f2937" font-size="13" font-family="monospace">icon</text>
+                    </g>
+
+                    <!-- ============ MEASUREMENT TABLE ============ -->
+                    <g filter="url(#shadow)">
+                        <rect x="410" y="305" width="260" height="175" rx="10" fill="#fff" stroke="#f59e0b" stroke-width="2.5"/>
+                        <rect x="410" y="305" width="260" height="38" rx="10" fill="#f59e0b"/>
+                        <rect x="410" y="332" width="260" height="11" fill="#f59e0b"/>
+                        <text x="540" y="330" text-anchor="middle" fill="#fff" font-size="16" font-weight="700" font-family="system-ui">measurement</text>
+
+                        <text x="425" y="362" fill="#1f2937" font-size="13" font-family="monospace"><tspan font-weight="700" fill="#f59e0b">PK</tspan>  id</text>
+                        <line x1="425" y1="370" x2="655" y2="370" stroke="#e5e7eb" stroke-width="1"/>
+                        <text x="425" y="392" fill="#1f2937" font-size="13" font-family="monospace"><tspan font-weight="700" fill="#e67e22">FK</tspan>  sensor_id</text>
+                        <text x="425" y="416" fill="#1f2937" font-size="13" font-family="monospace">value</text>
+                        <text x="495" y="416" fill="#9ca3af" font-size="11" font-family="system-ui">the sensor reading</text>
+                        <text x="425" y="440" fill="#1f2937" font-size="13" font-family="monospace">time</text>
+                        <text x="495" y="440" fill="#9ca3af" font-size="11" font-family="system-ui">when it was measured</text>
+                    </g>
+
+                    <!-- ============ RELATIONSHIP: device → sensor ============ -->
+                    <line x1="300" y1="110" x2="410" y2="110" stroke="#e67e22" stroke-width="2.5"/>
+                    <circle cx="300" cy="110" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/>
+                    <polygon points="404,105 414,110 404,115" fill="#e67e22"/>
+                    <rect x="326" y="95" width="52" height="20" rx="4" fill="#fff3e0" stroke="#e67e22" stroke-width="1"/>
+                    <text x="352" y="110" text-anchor="middle" fill="#e67e22" font-size="11" font-weight="700" font-family="system-ui">1 : N</text>
+
+                    <!-- ============ RELATIONSHIP: sensor → measurement ============ -->
+                    <line x1="540" y1="235" x2="540" y2="305" stroke="#e67e22" stroke-width="2.5"/>
+                    <circle cx="540" cy="235" r="6" fill="#22c55e" stroke="#fff" stroke-width="2"/>
+                    <polygon points="535,299 540,309 545,299" fill="#e67e22"/>
+                    <rect x="550" y="260" width="52" height="20" rx="4" fill="#fff3e0" stroke="#e67e22" stroke-width="1"/>
+                    <text x="576" y="275" text-anchor="middle" fill="#e67e22" font-size="11" font-weight="700" font-family="system-ui">1 : N</text>
+
+                    <!-- ============ JOIN HINTS ============ -->
+                    <g filter="url(#shadow)">
+                        <rect x="20" y="330" width="280" height="95" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+                        <text x="35" y="356" fill="#475569" font-size="13" font-weight="700" font-family="system-ui">How to JOIN tables:</text>
+                        <text x="35" y="380" fill="#1f2937" font-size="12.5" font-family="monospace">sensor.device_id = device.id</text>
+                        <text x="35" y="404" fill="#1f2937" font-size="12.5" font-family="monospace">measurement.sensor_id = sensor.id</text>
+                    </g>
+
+                    <!-- ============ LEGEND ============ -->
+                    <g filter="url(#shadow)">
+                        <rect x="720" y="25" width="220" height="145" rx="8" fill="#fff" stroke="#d1d5db" stroke-width="1.5"/>
+                        <text x="740" y="50" fill="#374151" font-size="14" font-weight="700" font-family="system-ui">Legend</text>
+                        <line x1="740" y1="58" x2="920" y2="58" stroke="#e5e7eb" stroke-width="1"/>
+
+                        <text x="740" y="82" font-size="13" font-family="monospace"><tspan font-weight="700" fill="#3b82f6">PK</tspan></text>
+                        <text x="785" y="82" fill="#4b5563" font-size="12.5" font-family="system-ui">= Primary Key (unique ID)</text>
+
+                        <text x="740" y="106" font-size="13" font-family="monospace"><tspan font-weight="700" fill="#e67e22">FK</tspan></text>
+                        <text x="785" y="106" fill="#4b5563" font-size="12.5" font-family="system-ui">= Foreign Key (link)</text>
+
+                        <text x="740" y="130" font-size="13" font-family="system-ui"><tspan fill="#e67e22" font-weight="700">1 : N</tspan></text>
+                        <text x="785" y="130" fill="#4b5563" font-size="12.5" font-family="system-ui">= One-to-Many</text>
+
+                        <line x1="740" y1="148" x2="762" y2="148" stroke="#e67e22" stroke-width="2.5"/>
+                        <polygon points="762,144 772,148 762,152" fill="#e67e22"/>
+                        <text x="785" y="153" fill="#4b5563" font-size="12.5" font-family="system-ui">= Relationship</text>
+                    </g>
+
+                    <!-- ============ VIEWS SECTION ============ -->
+                    <g filter="url(#shadow)">
+                        <rect x="720" y="205" width="220" height="300" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" stroke-dasharray="6,3"/>
+                        <text x="740" y="233" fill="#16a34a" font-size="14" font-weight="700" font-family="system-ui">Available Views</text>
+                        <text x="740" y="252" fill="#6b7280" font-size="11" font-family="system-ui">(pre-built queries you can use)</text>
+
+                        <rect x="740" y="268" width="180" height="30" rx="6" fill="#dcfce7"/>
+                        <text x="752" y="289" fill="#166534" font-size="12.5" font-weight="600" font-family="monospace">view_devices</text>
+                        <text x="740" y="314" fill="#4b5563" font-size="11.5" font-family="system-ui">Active devices with sensor</text>
+                        <text x="740" y="330" fill="#4b5563" font-size="11.5" font-family="system-ui">count and location</text>
+
+                        <rect x="740" y="345" width="180" height="30" rx="6" fill="#dcfce7"/>
+                        <text x="752" y="366" fill="#166534" font-size="12.5" font-weight="600" font-family="monospace">view_sensors</text>
+                        <text x="740" y="391" fill="#4b5563" font-size="11.5" font-family="system-ui">Sensors joined with device</text>
+                        <text x="740" y="407" fill="#4b5563" font-size="11.5" font-family="system-ui">info and location</text>
+
+                        <rect x="740" y="422" width="180" height="30" rx="6" fill="#dcfce7"/>
+                        <text x="752" y="443" fill="#166534" font-size="12" font-weight="600" font-family="monospace">view_recent_measurements</text>
+                        <text x="740" y="468" fill="#4b5563" font-size="11.5" font-family="system-ui">Last 24h readings with</text>
+                        <text x="740" y="484" fill="#4b5563" font-size="11.5" font-family="system-ui">sensor and device info</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <!-- SQL Editor Column -->
         <div class="col-lg-8">
@@ -367,59 +506,6 @@
 
         <!-- Sidebar -->
         <div class="col-lg-4">
-            <!-- Database Schema Reference -->
-            <div class="card mb-3">
-                <div class="card-header bg-white">
-                    <h6 class="mb-0"><i class="bi bi-diagram-3"></i> Database Schema</h6>
-                </div>
-                <div class="card-body schema-card">
-                    <div class="mb-3">
-                        <div class="table-name" onclick="insertTable('device')">
-                            <i class="bi bi-table text-primary"></i> device
-                        </div>
-                        <div class="column-list">
-                            id, name, exposure, latitude, longitude, model, grouptag, created_at, updated_at, last_measurement_at
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="table-name" onclick="insertTable('sensor')">
-                            <i class="bi bi-table text-primary"></i> sensor
-                        </div>
-                        <div class="column-list">
-                            id, device_id, title, unit, sensor_type, sensor_wiki_phenomenon
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="table-name" onclick="insertTable('measurement')">
-                            <i class="bi bi-table text-primary"></i> measurement
-                        </div>
-                        <div class="column-list">
-                            id, sensor_id, value, created_at
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="table-name" onclick="insertTable('view_devices')">
-                            <i class="bi bi-eye text-success"></i> view_devices
-                        </div>
-                        <div class="column-list">
-                            (Simplified device view with sensor count)
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="table-name" onclick="insertTable('view_measurements')">
-                            <i class="bi bi-eye text-success"></i> view_measurements
-                        </div>
-                        <div class="column-list">
-                            (Measurements with device/sensor info)
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Example Queries -->
             <div class="card mb-3">
                 <div class="card-header bg-white">
@@ -436,7 +522,7 @@
                         SELECT d.name, COUNT(s.id) as sensor_count FROM device d JOIN sensor s ON d.id = s.device_id GROUP BY d.id, d.name ORDER BY sensor_count DESC LIMIT 10;
                     </div>
                     <div class="example-query" onclick="loadExample(4)">
-                        SELECT title, unit, sensor_wiki_phenomenon FROM sensor WHERE sensor_wiki_phenomenon LIKE '%PM%' LIMIT 20;
+                        SELECT title, unit FROM sensor WHERE title LIKE '%Temperatur%' LIMIT 20;
                     </div>
                     <div class="example-query" onclick="loadExample(5)">
                         SELECT * FROM view_devices LIMIT 20;
@@ -450,7 +536,6 @@
                     <h6><i class="bi bi-info-circle"></i> Tips</h6>
                     <ul class="small mb-0">
                         <li>Use <code>LIMIT</code> to control result size</li>
-                        <li>Click table names to insert them</li>
                         <li>Click example queries to load them</li>
                         <li>Results with coordinates show map option</li>
                         <li>Press <strong>Ctrl+Enter</strong> to run</li>
@@ -508,7 +593,7 @@
             1: 'SELECT * FROM device LIMIT 10;',
             2: "SELECT name, latitude, longitude FROM device WHERE exposure = 'outdoor' LIMIT 50;",
             3: 'SELECT d.name, COUNT(s.id) as sensor_count\nFROM device d\nJOIN sensor s ON d.id = s.device_id\nGROUP BY d.id, d.name\nORDER BY sensor_count DESC\nLIMIT 10;',
-            4: "SELECT title, unit, sensor_wiki_phenomenon\nFROM sensor\nWHERE sensor_wiki_phenomenon LIKE '%PM%'\nLIMIT 20;",
+            4: "SELECT title, unit\nFROM sensor\nWHERE title LIKE '%Temperatur%'\nLIMIT 20;",
             5: 'SELECT * FROM view_devices LIMIT 20;'
         };
         editor.setValue(examples[num] || '');
@@ -837,6 +922,14 @@
     editor.setOption('extraKeys', {
         'Ctrl-Enter': function() { executeQuery(); }
     });
+
+    // Toggle chevron icon on ER diagram collapse
+    const erBody = document.getElementById('erDiagramBody');
+    const erChevron = document.getElementById('erChevron');
+    if (erBody && erChevron) {
+        erBody.addEventListener('shown.bs.collapse', () => erChevron.className = 'bi bi-chevron-up');
+        erBody.addEventListener('hidden.bs.collapse', () => erChevron.className = 'bi bi-chevron-down');
+    }
 </script>
 </body>
 </html>
